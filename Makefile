@@ -6,7 +6,7 @@ PROGS = debugger
 
 all: ${PROGS}
 
-debugger: debugger.c
+debugger: debugger.c helper.h command.h
 	$(CGG) -o $@ $(CFLAGS) $< 
 
 clean:

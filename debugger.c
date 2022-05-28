@@ -1,27 +1,20 @@
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<sys/ptrace.h>
-#include<sys/wait.h>
+#include"helper.h"
 
 int main(int argc, char* argv[]){
     char* script = calloc(100, sizeof(char));
     char* program = calloc(100, sizeof(char));
-    int s_index = -1;
-    int p_index = -1;
-    for(int i = 0; i+1 < argc; i++){
-        if(!strcmp(argv[i], "-s")) { strcpy(script, argv[i+1]); s_index = i; break; }
-    }
-    if(argc == 4){
-        if(s_index == 1) { strcpy(program, argv[3]); p_index = 3; }
-        else if(s_index == 2) { strcpy(program, argv[1]); p_index = 1; }
-    }
+    init(argc, argv, script, program);
+    int exit = get_command_NOLOADED(program);
+    if(exit) return 0;
+    int entry_point = load(program);
+    if(entry_point < 0) return -1;
+    printf("** program '%s' loaded. entry point 0x%x\n", program, entry_point);
+
     pid_t child = fork();
     if(child < 0) { perror("fork"); return -1; }
     else if(child == 0){
         if(ptrace(PTRACE_TRACEME, 0, 0, 0) < 0) { perror("TRACEME"); return -1; }
-        execvp(program, argv + p_index);
+        execlp(program, program, NULL);
     }
     else {
         int wait_status;
