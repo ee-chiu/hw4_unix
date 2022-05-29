@@ -84,10 +84,34 @@ void set() {
     return;
 }
 
-void si() {
+void si(pid_t child) {
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+    int wait_status;
+    if(ptrace(PTRACE_SINGLESTEP, child, 0, 0) < 0) { perror("SINGLESTEP"); return; }
+    if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+    if(WIFEXITED(wait_status)) { 
+        printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
+        state = LOADED;
+        return; 
+    }
     return;
 }
 
-void start() {
-    return;
+pid_t start(char* program) {
+    if(state != LOADED) { printf("** state must be LOADED\n"); return -1; }
+    pid_t child = fork();
+    if(child < 0) { perror("fork"); return -1; }
+    else if(child == 0) {
+        if(ptrace(PTRACE_TRACEME, 0, 0, 0) < 0) { perror("TRACEME"); return -1; }
+        execlp(program, program, NULL);
+    }
+    else {
+        int wait_status;
+        if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return -1; }
+        if(ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_EXITKILL) < 0) { perror("SETOPTIONS"); return -1; }
+        state = RUNNING;
+        printf("** pid %d\n", child);
+        return child;
+    }
+    return -1;
 }

@@ -38,3 +38,16 @@ int get_command_NOLOADED(char* program){
     free(command);
     return 0;
 } 
+
+void get_command(char* program) {
+    char* command = calloc(30, sizeof(char));
+    pid_t child;
+    while(1){
+        printf("sdb> ");
+        scanf("%s", command);
+        if(!strcmp(command, "exit") || !strcmp(command, "q")) break;
+        if(!strcmp(command, "load")) { printf("** state must be NOT LOADED\n"); continue; }
+        if(!strcmp(command, "si")) si(child);
+        if(!strcmp(command, "start")) child = start(program);
+    }
+}
