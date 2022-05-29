@@ -12,7 +12,35 @@
 
 int state = NOT_LOADED;
 
-void help(){
+void break_() {
+    return;
+} 
+
+void cont() {
+    return;
+}
+
+void delete() {
+    return;
+}
+
+void disasm() {
+    return;
+}
+
+void dump() {
+    return;
+}
+
+void get() {
+    return;
+}
+
+void getregs() {
+    return;
+}
+
+void help() {
     printf("- break {instruction-address}: add a break point\n");
     printf("- cont: continue execution\n");
     printf("- delete {break-point-id}: remove a break point\n");
@@ -29,4 +57,37 @@ void help(){
     printf("- set reg val: get a single value to a register\n");
     printf("- si: step into instruction\n");
     printf("- start: start the program and stop at the first instruction\n");
+}
+
+void list() {
+    return;
+}
+
+int load(char* program) {
+    int entry_point = -1;
+    FILE* file = fopen(program, "rb");
+    if(!file) { perror("fopen"); return -1; }
+    if(fseek(file, 24, SEEK_SET) < 0) { perror("fseek"); return -1; }
+    fread(&entry_point, 8, 1, file);
+    return entry_point;
+}
+
+void run() {
+    return;
+}
+
+void vmmap() {
+    return;
+}
+
+void set() {
+    return;
+}
+
+void si() {
+    return;
+}
+
+void start() {
+    return;
 }

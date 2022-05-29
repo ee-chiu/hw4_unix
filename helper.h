@@ -38,12 +38,3 @@ int get_command_NOLOADED(char* program){
     free(command);
     return 0;
 } 
-
-int load(char* program) {
-    int entry_point = -1;
-    FILE* file = fopen(program, "rb");
-    if(!file) { perror("fopen"); return -1; }
-    if(fseek(file, 24, SEEK_SET) < 0) { perror("fseek"); return -1; }
-    fread(&entry_point, 8, 1, file);
-    return entry_point;
-}
