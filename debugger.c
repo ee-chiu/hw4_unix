@@ -6,9 +6,9 @@ int main(int argc, char* argv[]){
     init(argc, argv, script, program);
     int exit = get_command_NOLOADED(program);
     if(exit) return 0;
-    int entry_point = load(program);
+    uint64_t entry_point = load(program);
     if(entry_point < 0) return -1;
-    printf("** program '%s' loaded. entry point 0x%x\n", program, entry_point);
+    printf("** program '%s' loaded. entry point 0x%lx\n", program, entry_point);
     get_command(program);
 
     return 0;

@@ -5,12 +5,24 @@
 #include<sys/ptrace.h>
 #include<sys/wait.h>
 #include<elf.h>
+#include<capstone/capstone.h>
+#include<errno.h>
+#include<sys/user.h>
+#include<sys/stat.h>
+#include<sys/mman.h>
+#include<sys/types.h>
+#include<sys/fcntl.h>
 
 #define NOT_LOADED 1
 #define LOADED 2 
 #define RUNNING 3 
 
 int state = NOT_LOADED;
+Elf64_Ehdr elf_header;
+Elf64_Shdr section_header;
+csh handle = 0;
+
+#define PEEKSIZE 8
 
 void break_() {
     return;
@@ -24,7 +36,85 @@ void delete() {
     return;
 }
 
-void disasm() {
+uint64_t get_text_size(char* program) {
+    int fd = open(program, O_RDONLY);
+
+    /* map ELF file into memory for easier manipulation */
+    struct stat statbuf;
+    fstat(fd, &statbuf);
+    char *fbase = mmap(NULL, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
+
+    Elf64_Ehdr *ehdr = (Elf64_Ehdr *)fbase;
+    Elf64_Shdr *sects = (Elf64_Shdr *)(fbase + ehdr->e_shoff);
+    int shnum = ehdr->e_shnum;
+    int shstrndx = ehdr->e_shstrndx;
+
+    /* get string table index */
+    Elf64_Shdr *shstrsect = &sects[shstrndx];
+    char *shstrtab = fbase + shstrsect->sh_offset;
+
+    int i;
+    for(i = 0; i < shnum; i++) {
+        if(!strcmp(shstrtab+sects[i].sh_name, ".text")) return sects[i].sh_size;
+    }
+    return -1;
+}
+
+void disassemble(pid_t child, unsigned long long rip, char* addr, char* program) {
+    uint64_t addr_ = -1;
+    sscanf(addr, "0x%lx", &addr_); 
+    uint64_t text_size = get_text_size(program);
+    uint64_t text_end = elf_header.e_entry + text_size;
+    char* buf = calloc(text_size, sizeof(char));
+    cs_insn *insn;
+    uint64_t ptr;
+    int count;
+
+    for(ptr = elf_header.e_entry; ptr < text_end; ptr += PEEKSIZE) {
+        long long peek;
+        errno = 0;
+        peek = ptrace(PTRACE_PEEKTEXT, child, ptr, NULL);
+        if(errno != 0) break;
+        memcpy(&buf[ptr-elf_header.e_entry], &peek, PEEKSIZE);
+    }
+
+    count = cs_disasm(handle, (uint8_t*) buf, rip-ptr, rip, 0, &insn);
+    if(count <= 0) { printf("cs_disasm error!\n"); return; }
+    for(int i = 0; i < count; i++) {
+        if(insn[i].address < addr_) continue;
+        if(insn[i].address >= text_end) break;
+        printf("\t%lx: ", insn[i].address);
+        for(int j = 0; j < insn[i].size; j++) printf("%02x ", insn[i].bytes[j]);
+        printf("\t\t");
+        printf("%s\t", insn[i].mnemonic);
+        printf("%s\n", insn[i].op_str);
+    }
+    cs_free(insn, count);
+    free(buf);
+    return;
+}
+
+void disasm(char* line, char* program) {
+    char* save_ptr = NULL;
+    char* addr = strtok_r(line, " \n", &save_ptr);
+    addr = strtok_r(NULL, " \n", &save_ptr);
+    if(addr == NULL) { printf("** no addr is given\n"); return; }
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+
+    pid_t child = fork();
+    if(child < 0) { perror("disasm fork"); return; }
+    else if(child == 0) {
+        if(ptrace(PTRACE_TRACEME, 0, 0, 0) < 0) { perror("TRACEME\n"); return; }
+        execlp(program, program, NULL);
+    }
+    else {
+        int wait_status;
+        if(cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) { printf("cs_open error\n"); return; }
+        if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+        ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_EXITKILL);
+        struct user_regs_struct regs;
+        if(ptrace(PTRACE_GETREGS, child, 0, &regs) == 0) disassemble(child, regs.rip, addr, program);
+    } 
     return;
 }
 
@@ -63,13 +153,12 @@ void list() {
     return;
 }
 
-int load(char* program) {
-    int entry_point = -1;
+uint64_t load(char* program) {
     FILE* file = fopen(program, "rb");
     if(!file) { perror("fopen"); return -1; }
-    if(fseek(file, 24, SEEK_SET) < 0) { perror("fseek"); return -1; }
-    fread(&entry_point, 8, 1, file);
-    return entry_point;
+    fread(&elf_header, sizeof(elf_header), 1, file);
+    fclose(file);
+    return elf_header.e_entry;
 }
 
 void run() {

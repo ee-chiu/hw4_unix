@@ -14,14 +14,18 @@ void init(const int argc, char* argv[], char* script, char* program) {
 }
 
 int get_command_NOLOADED(char* program){
-    char* command = calloc(30, sizeof(char));
+    char* line = (char*) calloc(30, sizeof(char));
+    char* line_cpy = (char*) calloc(30, sizeof(char));
+    char* save_ptr = NULL;
     while(state == NOT_LOADED){
         printf("sdb> ");
-        scanf("%s", command);
+        fgets(line, 30, stdin);
+        strcpy(line_cpy, line);
+        char* command = strtok_r(line_cpy, " \n", &save_ptr); 
         if(!strcmp(command, "break") || !strcmp(command, "b")) printf("** no address is given\n");
         if(!strcmp(command, "cont") || !strcmp(command, "c")) printf("** state must be RUNNING\n"); 
         if(!strcmp(command, "delete")) printf("** no break-point-id is given\n");
-        if(!strcmp(command, "disasm") || !strcmp(command, "d")) printf("** no addr is given\n");
+        if(!strcmp(command, "disasm") || !strcmp(command, "d")) disasm(line, NULL); 
         if(!strcmp(command, "dump") || !strcmp(command, "x")) printf("** no addr is given\n");
         if(!strcmp(command, "exit") || !strcmp(command, "q")) return 1;
         if(!strcmp(command, "get") || !strcmp(command, "g")) printf("** no register is given\n");
@@ -35,19 +39,27 @@ int get_command_NOLOADED(char* program){
         if(!strcmp(command, "si")) printf("** state must be RUNNING\n");
         if(!strcmp(command, "start")) printf("** state must be LOADED\n");
     }
-    free(command);
+    free(line);
+    free(line_cpy);
     return 0;
 } 
 
 void get_command(char* program) {
-    char* command = calloc(30, sizeof(char));
+    char* line = calloc(30, sizeof(char));
+    char* line_cpy = calloc(30, sizeof(char));
+    char* save_ptr = NULL;
     pid_t child;
     while(1){
         printf("sdb> ");
-        scanf("%s", command);
+        fgets(line, 30, stdin);
+        strcpy(line_cpy, line);
+        char* command = strtok_r(line_cpy, " \n", &save_ptr);
+        if(!strcmp(command, "disasm") || !strcmp(command, "d")) disasm(line, program);
         if(!strcmp(command, "exit") || !strcmp(command, "q")) break;
         if(!strcmp(command, "load")) { printf("** state must be NOT LOADED\n"); continue; }
         if(!strcmp(command, "si")) si(child);
         if(!strcmp(command, "start")) child = start(program);
     }
+    free(line);
+    free(line_cpy);
 }
