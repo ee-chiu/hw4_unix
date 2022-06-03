@@ -130,7 +130,16 @@ void get() {
     return;
 }
 
-void getregs() {
+void getregs(pid_t child) {
+    if(state != RUNNING) printf("** state must be RUNNING\n");
+    struct user_regs_struct regs;
+    if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
+    printf("RAX %llx\t\tRBX %llx\t\tRCX %llx\t\tRDX %llx\n", regs.rax, regs.rbx, regs.rcx, regs.rdx);
+    printf("R8 %llx\t\tR9 %llx\t\tR10 %llx\t\tR11 %llx\n", regs.r8, regs.r9, regs.r10, regs.r11);
+    printf("R12 %llx\t\tR13 %llx\t\tR14 %llx\t\tR15 %llx\n", regs.r12, regs.r13, regs.r14, regs.r15);
+    printf("RDI %llx\t\tRSI %llx\t\tRBP %llx\t\tRSP %llx\n", regs.rdi, regs.rsi, regs.rbp, regs.rsp);
+    printf("RIP %llx\t\t\tFLAGS %016llx\n", regs.rip, regs.eflags);
+
     return;
 }
 
