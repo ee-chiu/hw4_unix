@@ -56,6 +56,7 @@ void get_command(char* program) {
         char* command = strtok_r(line_cpy, " \n", &save_ptr);
         if(!strcmp(command, "disasm") || !strcmp(command, "d")) disasm(line, program);
         if(!strcmp(command, "exit") || !strcmp(command, "q")) break;
+        if(!strcmp(command, "help") || !strcmp(command, "h")) help();
         if(!strcmp(command, "load")) { printf("** state must be NOT LOADED\n"); continue; }
         if(!strcmp(command, "si")) si(child);
         if(!strcmp(command, "start")) child = start(program);

@@ -79,6 +79,7 @@ void disassemble(pid_t child, unsigned long long rip, char* addr, char* program)
     }
 
     count = cs_disasm(handle, (uint8_t*) buf, rip-ptr, rip, 0, &insn);
+    int print_instructions = 0;
     if(count <= 0) { printf("cs_disasm error!\n"); return; }
     for(int i = 0; i < count; i++) {
         if(insn[i].address < addr_) continue;
@@ -88,7 +89,10 @@ void disassemble(pid_t child, unsigned long long rip, char* addr, char* program)
         printf("\t\t");
         printf("%s\t", insn[i].mnemonic);
         printf("%s\n", insn[i].op_str);
+        print_instructions++;
+        if(print_instructions == 10) break;
     }
+    printf("** the address is out of the range of the text segment\n");
     cs_free(insn, count);
     free(buf);
     return;
