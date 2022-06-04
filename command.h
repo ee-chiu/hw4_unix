@@ -248,7 +248,40 @@ void vmmap() {
     return;
 }
 
-void set() {
+void set(char* line, pid_t child) {
+    char* save_ptr = NULL;
+    strtok_r(line, " \n", &save_ptr);
+    char* reg = strtok_r(NULL, " \n", &save_ptr);
+    if(reg == NULL) { printf("** Not enough input arguments\n"); return; }
+    char* value_ = strtok_r(NULL, " \n", &save_ptr);
+    if(value_ == NULL) { printf("** Not enough input arguments\n"); return; }
+    uint64_t value = -1;
+    if(value_[1] == 'x') sscanf(value_, "0x%lx", &value);
+    else sscanf(value_, "%lx", &value);
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+
+    struct user_regs_struct regs;
+    if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
+    if(!strcmp(reg, "rax")) regs.rax = value; 
+    if(!strcmp(reg, "rbx")) regs.rbx = value; 
+    if(!strcmp(reg, "rcx")) regs.rcx = value; 
+    if(!strcmp(reg, "rdx")) regs.rdx = value; 
+    if(!strcmp(reg, "r8")) regs.r8 = value; 
+    if(!strcmp(reg, "r9")) regs.r9 = value; 
+    if(!strcmp(reg, "r10")) regs.r10 = value; 
+    if(!strcmp(reg, "r11")) regs.r11 = value; 
+    if(!strcmp(reg, "r12")) regs.r12 = value; 
+    if(!strcmp(reg, "r13")) regs.r13 = value; 
+    if(!strcmp(reg, "r14")) regs.r14 = value; 
+    if(!strcmp(reg, "r15")) regs.r15 = value; 
+    if(!strcmp(reg, "rdi")) regs.rdi = value; 
+    if(!strcmp(reg, "rsi")) regs.rsi = value; 
+    if(!strcmp(reg, "rbp")) regs.rbp = value; 
+    if(!strcmp(reg, "rsp")) regs.rsp = value; 
+    if(!strcmp(reg, "rip")) regs.rip = value; 
+    if(!strcmp(reg, "flags")) regs.eflags = value; 
+
+    if(ptrace(PTRACE_SETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
     return;
 }
 

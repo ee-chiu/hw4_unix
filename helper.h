@@ -62,6 +62,7 @@ void get_command(char* program) {
         if(!strcmp(command, "help") || !strcmp(command, "h")) help();
         if(!strcmp(command, "load")) { printf("** state must be NOT LOADED\n"); continue; }
         if(!strcmp(command, "run") || !strcmp(command, "r")) run(program, child);
+        if(!strcmp(command, "set") || !strcmp(command, "s")) set(line, child);
         if(!strcmp(command, "si")) si(child);
         if(!strcmp(command, "start")) child = start(program);
     }
