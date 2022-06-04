@@ -48,7 +48,7 @@ void get_command(char* program) {
     char* line = calloc(30, sizeof(char));
     char* line_cpy = calloc(30, sizeof(char));
     char* save_ptr = NULL;
-    pid_t child;
+    pid_t child = -1;
     while(1){
         printf("sdb> ");
         fgets(line, 30, stdin);
@@ -60,6 +60,7 @@ void get_command(char* program) {
         if(!strcmp(command, "getregs")) getregs(child);
         if(!strcmp(command, "help") || !strcmp(command, "h")) help();
         if(!strcmp(command, "load")) { printf("** state must be NOT LOADED\n"); continue; }
+        if(!strcmp(command, "run") || !strcmp(command, "r")) run(program, child);
         if(!strcmp(command, "si")) si(child);
         if(!strcmp(command, "start")) child = start(program);
     }

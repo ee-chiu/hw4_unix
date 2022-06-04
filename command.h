@@ -201,7 +201,38 @@ uint64_t load(char* program) {
     return elf_header.e_entry;
 }
 
-void run() {
+void run(char* program, pid_t child) {
+    if(state != LOADED && state != RUNNING) { printf("** state must be LOADED or RUNNING\n"); return; }
+    int wait_status;
+    if(state == RUNNING) {
+        printf("** program %s is already running\n", program);
+        ptrace(PTRACE_CONT, child, 0, 0);
+        if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+        if(WIFEXITED(wait_status)) {
+            printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
+            state = LOADED;
+        }
+        return;
+    }
+
+    child = fork();
+    if(child < 0) { perror("fork"); return; }
+    if(child == 0) {
+        if(ptrace(PTRACE_TRACEME, 0, 0, 0) < 0) { perror("TRACEME"); return; }
+        execlp(program, program, NULL);
+    }
+    else {
+        if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+        if(ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_EXITKILL) < 0) { perror("SETOPTIONS"); return; }
+        state = RUNNING;
+        printf("** pid %d\n", child);
+        ptrace(PTRACE_CONT, child, 0, 0);
+        if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+        if(WIFEXITED(wait_status)) {
+            printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
+            state = LOADED;
+        }
+    }
     return;
 }
 
