@@ -126,12 +126,39 @@ void dump() {
     return;
 }
 
-void get() {
+void get(char* line, pid_t child) {
+    char* save_ptr = NULL;
+    char* reg = strtok_r(line, " \n", &save_ptr);
+    reg = strtok_r(NULL, " \n", &save_ptr);
+    if(reg == NULL) { printf("** no register is given\n"); return; }
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+
+    struct user_regs_struct regs;
+    if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
+    if(!strcmp(reg, "rax")) { printf("rax = %lld (0x%llx)\n", regs.rax, regs.rax); return; }
+    if(!strcmp(reg, "rbx")) { printf("rbx = %lld (0x%llx)\n", regs.rbx, regs.rbx); return; }
+    if(!strcmp(reg, "rcx")) { printf("rcx = %lld (0x%llx)\n", regs.rcx, regs.rcx); return; }
+    if(!strcmp(reg, "rdx")) { printf("rdx = %lld (0x%llx)\n", regs.rdx, regs.rdx); return; }
+    if(!strcmp(reg, "r8")) { printf("r8 = %lld (0x%llx)\n", regs.r8, regs.r8); return; }
+    if(!strcmp(reg, "r9")) { printf("r9 = %lld (0x%llx)\n", regs.r9, regs.r9); return; }
+    if(!strcmp(reg, "r10")) { printf("r10 = %lld (0x%llx)\n", regs.r10, regs.r10); return; }
+    if(!strcmp(reg, "r11")) { printf("r11 = %lld (0x%llx)\n", regs.r11, regs.r11); return; }
+    if(!strcmp(reg, "r12")) { printf("r12 = %lld (0x%llx)\n", regs.r12, regs.r12); return; }
+    if(!strcmp(reg, "r13")) { printf("r13 = %lld (0x%llx)\n", regs.r13, regs.r13); return; }
+    if(!strcmp(reg, "r14")) { printf("r14 = %lld (0x%llx)\n", regs.r14, regs.r14); return; }
+    if(!strcmp(reg, "r15")) { printf("r15 = %lld (0x%llx)\n", regs.r15, regs.r15); return; }
+    if(!strcmp(reg, "rdi")) { printf("rdi = %lld (0x%llx)\n", regs.rdi, regs.rdi); return; }
+    if(!strcmp(reg, "rsi")) { printf("rsi = %lld (0x%llx)\n", regs.rsi, regs.rsi); return; }
+    if(!strcmp(reg, "rbp")) { printf("rbp = %lld (0x%llx)\n", regs.rbp, regs.rbp); return; }
+    if(!strcmp(reg, "rsp")) { printf("rsp = %lld (0x%llx)\n", regs.rsp, regs.rsp); return; }
+    if(!strcmp(reg, "rip")) { printf("rip = %lld (0x%llx)\n", regs.rip, regs.rip); return; }
+    if(!strcmp(reg, "flags")) { printf("flags = %lld (0x%llx)\n", regs.eflags, regs.eflags); return; }
+
     return;
 }
 
 void getregs(pid_t child) {
-    if(state != RUNNING) printf("** state must be RUNNING\n");
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
     struct user_regs_struct regs;
     if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
     printf("RAX %llx\t\tRBX %llx\t\tRCX %llx\t\tRDX %llx\n", regs.rax, regs.rbx, regs.rcx, regs.rdx);
