@@ -28,7 +28,15 @@ void break_() {
     return;
 } 
 
-void cont() {
+void cont(pid_t child) {
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+    int wait_status;
+    ptrace(PTRACE_CONT, child, 0, 0);
+    if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+    if(WIFEXITED(wait_status)) {
+        printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
+        state = LOADED;
+    }
     return;
 }
 
