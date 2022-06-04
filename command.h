@@ -78,7 +78,7 @@ void disassemble(pid_t child, unsigned long long rip, char* addr, char* program)
         memcpy(&buf[ptr-elf_header.e_entry], &peek, PEEKSIZE);
     }
 
-    count = cs_disasm(handle, (uint8_t*) buf, rip-ptr, rip, 0, &insn);
+    count = cs_disasm(handle, (uint8_t*) buf, text_size, elf_header.e_entry, 0, &insn);
     int print_instructions = 0;
     if(count <= 0) { printf("cs_disasm error!\n"); return; }
     for(int i = 0; i < count; i++) {
@@ -92,7 +92,7 @@ void disassemble(pid_t child, unsigned long long rip, char* addr, char* program)
         print_instructions++;
         if(print_instructions == 10) break;
     }
-    printf("** the address is out of the range of the text segment\n");
+    if(print_instructions < 10) printf("** the address is out of the range of the text segment\n");
     cs_free(insn, count);
     free(buf);
     return;
