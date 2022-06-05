@@ -54,13 +54,14 @@ void get_command(char* program) {
         fgets(line, 30, stdin);
         strcpy(line_cpy, line);
         char* command = strtok_r(line_cpy, " \n", &save_ptr);
-        if(!strcmp(command, "break") || !strcmp(command, "b")) break_(line, child);
+        if(!strcmp(command, "break") || !strcmp(command, "b")) break_(line, child, program);
         if(!strcmp(command, "cont") || !strcmp(command, "c")) cont(child); 
         if(!strcmp(command, "disasm") || !strcmp(command, "d")) disasm(line, program);
         if(!strcmp(command, "exit") || !strcmp(command, "q")) break;
         if(!strcmp(command, "get") || !strcmp(command, "g")) get(line, child);
         if(!strcmp(command, "getregs")) getregs(child);
         if(!strcmp(command, "help") || !strcmp(command, "h")) help();
+        if(!strcmp(command, "list") || !strcmp(command, "l")) list_();
         if(!strcmp(command, "load")) { printf("** state must be NOT LOADED\n"); continue; }
         if(!strcmp(command, "run") || !strcmp(command, "r")) run(program, child);
         if(!strcmp(command, "set") || !strcmp(command, "s")) set(line, child);
