@@ -28,7 +28,6 @@ typedef struct node node;
 typedef struct list list;
 
 struct node {
-    int id;
     uint64_t ori_data;
     uint64_t addr;
     struct node* next;
@@ -81,6 +80,18 @@ void push_back(uint64_t data, uint64_t addr) {
     return;
 }
 
+int get_addr_id(uint64_t addr_){
+    if(!list_used) return -1;
+    node* cur = point_list.head;
+    int id = 0;
+    while(cur) {
+        if(cur->addr == addr_) return id;
+        cur = cur->next;
+        id++;
+    }
+    return -1;
+}
+
 void break_(char* line, pid_t child, char* program) {
     char* save_ptr = NULL;
     char* addr = strtok_r(line, " \n", &save_ptr);
@@ -95,6 +106,8 @@ void break_(char* line, pid_t child, char* program) {
     uint64_t text_size = get_text_size(program);
     uint64_t text_end = elf_header.e_entry + text_size;
     if(addr_ >= text_end) { printf("** the address is out of the range of the text segment\n"); return; }
+    int addr_id = get_addr_id(addr_);
+    if(addr_id != -1) { printf("** the breakpoint is already exists. (breakpoint %d)\n", addr_id); return; }
 
     uint64_t data = ptrace(PTRACE_PEEKTEXT, child, addr_, 0);
     push_back(data, addr_);
@@ -255,9 +268,11 @@ void help() {
 void list_() {
     if(!list_used) return;
     node* cur = point_list.head;
+    int id = 0;
     while(cur) {
-        printf("%d: %lx\n", cur->id, cur->addr);
+        printf("%d: %lx\n", id, cur->addr);
         cur = cur->next;
+        id++;
     }
     return;
 }
