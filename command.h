@@ -24,7 +24,54 @@ csh handle = 0;
 
 #define PEEKSIZE 8
 
-void break_() {
+typedef struct node node;
+typedef struct list list;
+
+struct node {
+    int id;
+    uint64_t ori_data;
+    struct node* next;
+} ;
+
+struct list {
+    struct node* head;
+    struct node* tail;
+    int num_points;
+} ;
+
+struct list point_list;
+int list_used = 0;
+
+void push_back(uint64_t data) {
+    struct node* new_node = calloc(1, sizeof(struct node));
+    if(!list_used) { point_list.head = new_node; point_list.tail = new_node; point_list.num_points = 1; list_used = 1;}
+    new_node->id = point_list.num_points - 1;
+    new_node->ori_data = data;
+    new_node->next = NULL;
+
+    point_list.tail->next = new_node;
+    point_list.num_points++;
+    point_list.tail = new_node;
+    return;
+}
+
+void break_(char* line, pid_t child) {
+    char* save_ptr = NULL;
+    char* addr = strtok_r(line, " \n", &save_ptr);
+    addr = strtok_r(NULL, " \n", &save_ptr);
+    if(addr == NULL) { printf("** no address is given\n"); return; }
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+
+    uint64_t addr_;
+    if(addr[1] == 'x') sscanf(addr, "0x%lx", &addr_);
+    else sscanf(addr, "%lx", &addr_);
+    if(addr_ < elf_header.e_entry) { printf("** the address is out of the range of the text segment"); return; }
+
+    uint64_t data = ptrace(PTRACE_PEEKTEXT, child, addr_, 0);
+    push_back(data);
+
+    if(ptrace(PTRACE_POKETEXT, child, addr_, (data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }   
+
     return;
 } 
 
@@ -70,7 +117,9 @@ uint64_t get_text_size(char* program) {
 
 void disassemble(pid_t child, unsigned long long rip, char* addr, char* program) {
     uint64_t addr_ = -1;
-    sscanf(addr, "0x%lx", &addr_); 
+    if(addr[1] == 'x') sscanf(addr, "0x%lx", &addr_);
+    else sscanf(addr, "%lx", &addr_);
+    if(addr_ < elf_header.e_entry) { printf("** the address is out of the range of the text segment\n"); return; }
     uint64_t text_size = get_text_size(program);
     uint64_t text_end = elf_header.e_entry + text_size;
     char* buf = calloc(text_size, sizeof(char));
@@ -197,7 +246,7 @@ void help() {
     printf("- start: start the program and stop at the first instruction\n");
 }
 
-void list() {
+void list_() {
     return;
 }
 
