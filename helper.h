@@ -22,22 +22,22 @@ int get_command_NOLOADED(char* program){
         fgets(line, 30, stdin);
         strcpy(line_cpy, line);
         char* command = strtok_r(line_cpy, " \n", &save_ptr); 
-        if(!strcmp(command, "break") || !strcmp(command, "b")) printf("** no address is given\n");
-        if(!strcmp(command, "cont") || !strcmp(command, "c")) printf("** state must be RUNNING\n"); 
-        if(!strcmp(command, "delete")) printf("** no break-point-id is given\n");
+        if(!strcmp(command, "break") || !strcmp(command, "b")) break_(line, -1, NULL);
+        if(!strcmp(command, "cont") || !strcmp(command, "c")) cont(-1); 
+        if(!strcmp(command, "delete")) delete(line, -1);
         if(!strcmp(command, "disasm") || !strcmp(command, "d")) disasm(line, NULL); 
-        if(!strcmp(command, "dump") || !strcmp(command, "x")) printf("** no addr is given\n");
+        if(!strcmp(command, "dump") || !strcmp(command, "x")) dump(line, -1);
         if(!strcmp(command, "exit") || !strcmp(command, "q")) return 1;
-        if(!strcmp(command, "get") || !strcmp(command, "g")) printf("** no register is given\n");
-        if(!strcmp(command, "getregs")) printf("** state must be RUNNING\n");
+        if(!strcmp(command, "get") || !strcmp(command, "g")) get(line, -1);
+        if(!strcmp(command, "getregs")) getregs(-1);
         if(!strcmp(command, "help") || !strcmp(command, "h")) help();
-        if(!strcmp(command, "list") || !strcmp(command, "l")) continue;
+        if(!strcmp(command, "list") || !strcmp(command, "l")) list_();
         if(!strcmp(command, "load")) { scanf("%s", program); state = LOADED; break; }
-        if(!strcmp(command, "run") || !strcmp(command, "r")) printf("** state must be LOADED or RUNNING\n");
-        if(!strcmp(command, "vmmap") || !strcmp(command, "m")) printf("** state must be RUNNING\n");
-        if(!strcmp(command, "set") || !strcmp(command, "s")) printf("** Not enough input arguments\n");
-        if(!strcmp(command, "si")) printf("** state must be RUNNING\n");
-        if(!strcmp(command, "start")) printf("** state must be LOADED\n");
+        if(!strcmp(command, "run") || !strcmp(command, "r")) run(NULL, -1);
+        if(!strcmp(command, "vmmap") || !strcmp(command, "m")) vmmap();
+        if(!strcmp(command, "set") || !strcmp(command, "s")) set(line, -1);
+        if(!strcmp(command, "si")) si(-1);
+        if(!strcmp(command, "start")) start(NULL);
     }
     free(line);
     free(line_cpy);
