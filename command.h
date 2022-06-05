@@ -36,7 +36,6 @@ struct node {
 struct list {
     struct node* head;
     struct node* tail;
-    int num_points;
 } ;
 
 struct list point_list;
@@ -68,14 +67,13 @@ uint64_t get_text_size(char* program) {
 
 void push_back(uint64_t data, uint64_t addr) {
     struct node* new_node = calloc(1, sizeof(struct node));
-    if(!list_used) { point_list.head = new_node; point_list.tail = new_node; point_list.num_points = 1; list_used = 1;}
-    new_node->id = point_list.num_points - 1;
     new_node->ori_data = data;
     new_node->addr = addr;
     new_node->next = NULL;
 
+    if(!list_used) { point_list.head = new_node; point_list.tail = new_node; list_used = 1; return; }
+
     point_list.tail->next = new_node;
-    point_list.num_points++;
     point_list.tail = new_node;
     return;
 }
@@ -129,10 +127,41 @@ void cont(pid_t child) {
     return;
 }
 
-void delete() {
-    return;
+node* get_node(int id_) {
+    node* cur = point_list.head;
+    int cur_id = 0;
+    while(cur) {
+        if(cur_id == id_) return cur;
+        cur = cur->next;
+        cur_id++;
+    }
+    return NULL;
 }
 
+void delete(char* line, pid_t child) {
+    char* save_ptr = NULL;
+    char* id = strtok_r(line, " \n", &save_ptr);
+    id = strtok_r(NULL, " \n", &save_ptr);
+    if(id == NULL) { printf("** no break-point-id is given\n"); return; }
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+
+    int id_;
+    sscanf(id, "%d", &id_);
+    if(!list_used) { printf("** breakpoint %d does not exist\n", id_); return; }
+    node* cur = get_node(id_);
+    if(!cur) { printf("** breakpoint %d does not exist\n", id_); return; }
+
+    uint64_t ori_data = cur->ori_data;
+    uint64_t addr = cur->addr;
+    if(ptrace(PTRACE_POKETEXT, child, addr, ori_data) != 0) { perror("POKETEXT"); return; }
+
+    if(id_ == 0) { point_list.head = cur->next; free(cur); return; }
+    node* pre = get_node(id_ - 1);
+    if(cur == point_list.tail) { point_list.tail = pre; pre->next = NULL; free(cur); return; } 
+    pre->next = cur->next;
+    free(cur);
+    return;
+}
 
 void disassemble(pid_t child, unsigned long long rip, char* addr, char* program) {
     uint64_t addr_ = -1;

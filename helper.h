@@ -56,6 +56,7 @@ void get_command(char* program) {
         char* command = strtok_r(line_cpy, " \n", &save_ptr);
         if(!strcmp(command, "break") || !strcmp(command, "b")) break_(line, child, program);
         if(!strcmp(command, "cont") || !strcmp(command, "c")) cont(child); 
+        if(!strcmp(command, "delete")) delete(line, child);
         if(!strcmp(command, "disasm") || !strcmp(command, "d")) disasm(line, program);
         if(!strcmp(command, "exit") || !strcmp(command, "q")) break;
         if(!strcmp(command, "get") || !strcmp(command, "g")) get(line, child);
