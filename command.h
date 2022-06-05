@@ -12,6 +12,7 @@
 #include<sys/mman.h>
 #include<sys/types.h>
 #include<sys/fcntl.h>
+#include<ctype.h>
 
 #define NOT_LOADED 1
 #define LOADED 2 
@@ -227,7 +228,37 @@ void disasm(char* line, char* program) {
     return;
 }
 
-void dump() {
+void dump(char* line, pid_t child) {
+    char* save_ptr = NULL;
+    char* addr = strtok_r(line, " \n", &save_ptr);
+    addr = strtok_r(NULL, " \n", &save_ptr);
+    if(addr == NULL) { printf("** no addr is given\n"); return; }
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+
+    uint64_t addr_;
+    if(addr[1] == 'x') sscanf(addr, "0x%lx", &addr_);
+    else sscanf(addr, "%lx", &addr_);
+
+    char buf[80] = { 0 };
+    uint64_t ptr;
+    for(ptr = addr_; ptr < addr_ + 80; ptr += PEEKSIZE) {
+        long long peek;
+        errno = 0;
+        peek = ptrace(PTRACE_PEEKTEXT, child, ptr, NULL);
+        if(errno != 0) break;
+        memcpy(&buf[ptr-addr_], &peek, PEEKSIZE);
+    }
+
+    for(int i = 0; i < 5; i++){
+        printf("\t0x%lx: ", addr_ + i * 16);
+        for(int j = i * 16; j < (i+1) * 16; j++) printf("%02x ", buf[j] & 0xff);
+        printf("|");
+        for(int j = i * 16; j < (i+1) * 16; j++) {
+            if(isprint(buf[j])) printf("%c", buf[j]);
+            else printf(".");
+        }
+        printf("|\n");
+    }
     return;
 }
 

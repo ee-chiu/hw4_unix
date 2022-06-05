@@ -58,6 +58,7 @@ void get_command(char* program) {
         if(!strcmp(command, "cont") || !strcmp(command, "c")) cont(child); 
         if(!strcmp(command, "delete")) delete(line, child);
         if(!strcmp(command, "disasm") || !strcmp(command, "d")) disasm(line, program);
+        if(!strcmp(command, "dump") || !strcmp(command, "x")) dump(line, child);
         if(!strcmp(command, "exit") || !strcmp(command, "q")) break;
         if(!strcmp(command, "get") || !strcmp(command, "g")) get(line, child);
         if(!strcmp(command, "getregs")) getregs(child);
