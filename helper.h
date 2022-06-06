@@ -33,7 +33,7 @@ int get_command_NOLOADED(char* program){
         if(!strcmp(command, "help") || !strcmp(command, "h")) help();
         if(!strcmp(command, "list") || !strcmp(command, "l")) list_();
         if(!strcmp(command, "load")) { scanf("%s", program); state = LOADED; break; }
-        if(!strcmp(command, "run") || !strcmp(command, "r")) run(NULL, -1);
+        if(!strcmp(command, "run") || !strcmp(command, "r")) run(NULL, NULL);
         if(!strcmp(command, "vmmap") || !strcmp(command, "m")) vmmap();
         if(!strcmp(command, "set") || !strcmp(command, "s")) set(line, -1);
         if(!strcmp(command, "si")) si(-1);
@@ -65,7 +65,7 @@ void get_command(char* program) {
         if(!strcmp(command, "help") || !strcmp(command, "h")) help();
         if(!strcmp(command, "list") || !strcmp(command, "l")) list_();
         if(!strcmp(command, "load")) { printf("** state must be NOT LOADED\n"); continue; }
-        if(!strcmp(command, "run") || !strcmp(command, "r")) run(program, child);
+        if(!strcmp(command, "run") || !strcmp(command, "r")) run(program, &child);
         if(!strcmp(command, "set") || !strcmp(command, "s")) set(line, child);
         if(!strcmp(command, "si")) si(child);
         if(!strcmp(command, "start")) child = start(program);
