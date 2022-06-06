@@ -500,9 +500,10 @@ void si(pid_t child) {
     struct user_regs_struct regs;
     if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
     node* cur = get_node_by_rip(regs.rip);
+    node* cur2 = get_node_by_rip(regs.rip-1);
     
     int wait_status;
-    if(!cur) {
+    if(!cur && !cur2) {
         if(ptrace(PTRACE_SINGLESTEP, child, 0, 0) < 0) { perror("SINGLESTEP"); return; }
         if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
         if(WIFEXITED(wait_status)) { 
@@ -514,6 +515,12 @@ void si(pid_t child) {
             break_handler(child, 2);
         }
         return;
+    }
+
+    if(cur2) { 
+        regs.rip--;
+        if(ptrace(PTRACE_SETREGS, child, 0, &regs) != 0) { perror("SETREGS"); return; }    
+        cur = cur2; 
     }
 
     if(ptrace(PTRACE_POKETEXT, child, cur->addr, cur->ori_data) != 0) { perror("POKETEXT"); return; }
