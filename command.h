@@ -125,10 +125,10 @@ node* get_node_by_rip(uint64_t rip) {
     return NULL;
 }
 
-void break_handler(pid_t child) {
+void break_handler(pid_t child, int mode) {
     struct user_regs_struct regs;
     if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
-    regs.rip--;
+    if(mode == 1) regs.rip--;
     node* cur = get_node_by_rip(regs.rip);
     if(!cur) return;
 
@@ -178,7 +178,7 @@ void cont(pid_t child) {
     ptrace(PTRACE_CONT, child, 0, 0);
     if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
     if(WIFSTOPPED(wait_status)) {
-        break_handler(child);
+        break_handler(child, 1);
     }
     if(WIFEXITED(wait_status)) {
         printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
@@ -482,9 +482,32 @@ void set(char* line, pid_t child) {
 
 void si(pid_t child) {
     if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+    struct user_regs_struct regs;
+    if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
+    node* cur = get_node_by_rip(regs.rip);
+    
     int wait_status;
+    if(!cur) {
+        if(ptrace(PTRACE_SINGLESTEP, child, 0, 0) < 0) { perror("SINGLESTEP"); return; }
+        if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+        if(WIFSTOPPED(wait_status)) {
+            break_handler(child, 2);
+        }
+        if(WIFEXITED(wait_status)) { 
+            printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
+            state = LOADED;
+            return; 
+        }
+        return;
+    }
+
+    if(ptrace(PTRACE_POKETEXT, child, cur->addr, cur->ori_data) != 0) { perror("POKETEXT"); return; }
     if(ptrace(PTRACE_SINGLESTEP, child, 0, 0) < 0) { perror("SINGLESTEP"); return; }
     if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+    if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
+    if(WIFSTOPPED(wait_status)) {
+        break_handler(child, 2);
+    }
     if(WIFEXITED(wait_status)) { 
         printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
         state = LOADED;
