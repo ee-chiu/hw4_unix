@@ -145,11 +145,36 @@ void break_handler(pid_t child) {
     printf("\t\t");
     printf("%s\t", insn[0].mnemonic);
     printf("%s\n", insn[0].op_str);
+
+    return;
+}
+
+void print_rip(pid_t child) {
+    struct user_regs_struct regs;
+    if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
+    printf("rip: %llx\n", regs.rip);
+    return;
+}
+
+void restore_text(pid_t child) {
+    struct user_regs_struct regs;
+    if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
+    regs.rip--;
+    node* cur = get_node_by_rip(regs.rip);
+    if(!cur) return;
+
+    int wait_status;
+    if(ptrace(PTRACE_POKETEXT, child, cur->addr, cur->ori_data) != 0) { perror("POKETEXT"); return; }
+    if(ptrace(PTRACE_SETREGS, child, 0, &regs) != 0) { perror("SETREGS"); return; }
+    if(ptrace(PTRACE_SINGLESTEP, child, 0, 0) < 0) { perror("SINGLESTEP"); return; }
+    if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+    if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
 }
 
 void cont(pid_t child) {
     if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
     int wait_status;
+    restore_text(child);
     ptrace(PTRACE_CONT, child, 0, 0);
     if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
     if(WIFSTOPPED(wait_status)) {
