@@ -20,6 +20,7 @@ int get_command_NOLOADED(char* program){
     while(state == NOT_LOADED){
         printf("sdb> ");
         fgets(line, 30, stdin);
+        if(line[0] == '\n') continue;
         strcpy(line_cpy, line);
         char* command = strtok_r(line_cpy, " \n", &save_ptr); 
         if(!strcmp(command, "break") || !strcmp(command, "b")) break_(line, -1, NULL);
@@ -52,6 +53,7 @@ void get_command(char* program) {
     while(1){
         printf("sdb> ");
         fgets(line, 30, stdin);
+        if(line[0] == '\n') continue;
         strcpy(line_cpy, line);
         char* command = strtok_r(line_cpy, " \n", &save_ptr);
         if(!strcmp(command, "break") || !strcmp(command, "b")) break_(line, child, program);
