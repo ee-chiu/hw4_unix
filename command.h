@@ -215,6 +215,7 @@ void delete(char* line, pid_t child) {
     uint64_t addr = cur->addr;
     if(ptrace(PTRACE_POKETEXT, child, addr, ori_data) != 0) { perror("POKETEXT"); return; }
 
+    if(cur == point_list.head && cur == point_list.tail) { point_list.head = NULL; point_list.tail = NULL; list_used = 0; free(cur); return;}
     if(id_ == 0) { point_list.head = cur->next; free(cur); return; }
     node* pre = get_node(id_ - 1);
     if(cur == point_list.tail) { point_list.tail = pre; pre->next = NULL; free(cur); return; } 
@@ -516,6 +517,15 @@ void si(pid_t child) {
     return;
 }
 
+void set_break_point(pid_t child) {
+    node* cur = point_list.head;
+    while(cur) {
+        if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
+        cur = cur->next;
+    }
+    return;
+}
+
 pid_t start(char* program) {
     if(state != LOADED) { printf("** state must be LOADED\n"); return -1; }
     pid_t child = fork();
@@ -528,6 +538,7 @@ pid_t start(char* program) {
         int wait_status;
         if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return -1; }
         if(ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_EXITKILL) < 0) { perror("SETOPTIONS"); return -1; }
+        if(list_used) set_break_point(child);
         state = RUNNING;
         printf("** pid %d\n", child);
         return child;
