@@ -112,15 +112,49 @@ void break_(char* line, pid_t child, char* program) {
     push_back(data, addr_);
 
     if(ptrace(PTRACE_POKETEXT, child, addr_, (data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }   
-
     return;
-} 
+}
+
+node* get_node_by_rip(uint64_t rip) {
+    if(!list_used) return NULL;
+    node* cur = point_list.head;
+    while(cur) {
+        if(cur->addr == rip) return cur;
+        cur = cur->next;
+    }
+    return NULL;
+}
+
+void break_handler(pid_t child) {
+    struct user_regs_struct regs;
+    if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
+    regs.rip--;
+    node* cur = get_node_by_rip(regs.rip);
+    if(!cur) return;
+
+    char buf[8];
+    memcpy(&buf[0], &(cur->ori_data), 8);
+
+    if(cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK) { printf("cs_open error\n"); return; }
+    cs_insn *insn;
+    int count = cs_disasm(handle, (uint8_t*) buf, 8, regs.rip, 1, &insn);
+    if(count <= 0) { printf("cs_disasm error!\n"); return; }
+    printf("** breakpoint @\t\t");
+    printf("%lx: ", insn[0].address);
+    for(int j = 0; j < insn[0].size; j++) printf("%02x ", insn[0].bytes[j]);
+    printf("\t\t");
+    printf("%s\t", insn[0].mnemonic);
+    printf("%s\n", insn[0].op_str);
+}
 
 void cont(pid_t child) {
     if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
     int wait_status;
     ptrace(PTRACE_CONT, child, 0, 0);
     if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
+    if(WIFSTOPPED(wait_status)) {
+        break_handler(child);
+    }
     if(WIFEXITED(wait_status)) {
         printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
         state = LOADED;
