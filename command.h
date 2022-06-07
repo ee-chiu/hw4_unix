@@ -454,7 +454,25 @@ void run(char* program, pid_t *child) {
     return;
 }
 
-void vmmap() {
+void vmmap(pid_t child) {
+    if(state != RUNNING) { printf("** state must be RUNNING\n"); return; }
+    char* map_path = calloc(50, sizeof(char));
+    sprintf(map_path, "/proc/%d/maps", child);
+    FILE* map = fopen(map_path, "r");
+
+    uint64_t addr_start;
+    uint64_t addr_end;
+    char* permission = calloc(5, sizeof(char));
+    uint64_t offset;
+    char* trash_1 = calloc(10, sizeof(char));
+    char* trash_2 = calloc(20, sizeof(char));
+    char* path = calloc(300, sizeof(char));
+    while(1){
+        int read_byte = fscanf(map, "%lx-%lx %s %lx %s %s %s", &addr_start, &addr_end, permission, &offset, trash_1, trash_2, path);
+        if(read_byte <= 0 || read_byte == EOF) break;
+        permission[3] = '\0';
+        printf("%016lx-%016lx %s %lx\t\t%s\n", addr_start, addr_end, permission, offset, path);
+    }
     return;
 }
 
