@@ -33,7 +33,7 @@ int get_command_NOLOADED(char* program){
         if(!strcmp(command, "getregs")) getregs(-1);
         if(!strcmp(command, "help") || !strcmp(command, "h")) help();
         if(!strcmp(command, "list") || !strcmp(command, "l")) list_();
-        if(!strcmp(command, "load")) { scanf("%s", program); state = LOADED; break; }
+        if(!strcmp(command, "load")) { char* program_cpy = strtok_r(NULL, " \n", &save_ptr); strcpy(program, program_cpy); state = LOADED; break; }
         if(!strcmp(command, "run") || !strcmp(command, "r")) run(NULL, NULL);
         if(!strcmp(command, "vmmap") || !strcmp(command, "m")) vmmap(-1);
         if(!strcmp(command, "set") || !strcmp(command, "s")) set(line, -1);
