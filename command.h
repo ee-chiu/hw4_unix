@@ -200,6 +200,15 @@ node* get_node(int id_) {
     return NULL;
 }
 
+void set_break_point(pid_t child) {
+    node* cur = point_list.head;
+    while(cur) {
+        if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
+        cur = cur->next;
+    }
+    return;
+}
+
 void delete(char* line, pid_t child) {
     char* save_ptr = NULL;
     char* id = strtok_r(line, " \n", &save_ptr);
@@ -218,18 +227,28 @@ void delete(char* line, pid_t child) {
     struct user_regs_struct regs;
     
     if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
-    if(regs.rip - 1 == addr) {
-        regs.rip--;
-        if(ptrace(PTRACE_SETREGS, child, 0, &regs) != 0) { perror("SETREGS"); return; }
-    }
     if(ptrace(PTRACE_POKETEXT, child, addr, ori_data) != 0) { perror("POKETEXT"); return; }
 
-    if(cur == point_list.head && cur == point_list.tail) { point_list.head = NULL; point_list.tail = NULL; list_used = 0; free(cur); return;}
-    if(id_ == 0) { point_list.head = cur->next; free(cur); return; }
+    printf("** breakpoint %d deleted\n", id_);
+    if(cur == point_list.head && cur == point_list.tail) { 
+        point_list.head = NULL;
+        point_list.tail = NULL;
+        list_used = 0;
+        free(cur);
+        set_break_point(child);
+        return;
+    }
+    if(id_ == 0) {
+        point_list.head = cur->next;
+        free(cur);
+        set_break_point(child);
+        return;
+    }
     node* pre = get_node(id_ - 1);
     if(cur == point_list.tail) { point_list.tail = pre; pre->next = NULL; free(cur); return; } 
     pre->next = cur->next;
     free(cur);
+    set_break_point(child);
     return;
 }
 
@@ -399,7 +418,7 @@ void list_() {
     node* cur = point_list.head;
     int id = 0;
     while(cur) {
-        printf("%d: %lx\n", id, cur->addr);
+        printf("  %d: %lx\n", id, cur->addr);
         cur = cur->next;
         id++;
     }
@@ -412,15 +431,6 @@ uint64_t load(char* program) {
     fread(&elf_header, sizeof(elf_header), 1, file);
     fclose(file);
     return elf_header.e_entry;
-}
-
-void set_break_point(pid_t child) {
-    node* cur = point_list.head;
-    while(cur) {
-        if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
-        cur = cur->next;
-    }
-    return;
 }
 
 pid_t start(char* program) {
