@@ -13,13 +13,13 @@ void init(const int argc, char* argv[], char* script, char* program) {
     return;
 }
 
-int get_command_NOLOADED(char* program){
+int get_command_NOLOADED(char* program, FILE* read_file){
     char* line = (char*) calloc(30, sizeof(char));
     char* line_cpy = (char*) calloc(30, sizeof(char));
     char* save_ptr = NULL;
     while(state == NOT_LOADED){
-        printf("sdb> ");
-        fgets(line, 30, stdin);
+        if(read_file == stdin) fprintf(stderr, "sdb> ");
+        if(fgets(line, 30, read_file) == NULL) break;
         if(line[0] == '\n') continue;
         strcpy(line_cpy, line);
         char* command = strtok_r(line_cpy, " \n", &save_ptr); 
@@ -45,14 +45,14 @@ int get_command_NOLOADED(char* program){
     return 0;
 } 
 
-void get_command(char* program) {
+void get_command(char* program, FILE* read_file) {
     char* line = calloc(30, sizeof(char));
     char* line_cpy = calloc(30, sizeof(char));
     char* save_ptr = NULL;
     pid_t child = -1;
     while(1){
-        printf("sdb> ");
-        fgets(line, 30, stdin);
+        if(read_file == stdin) fprintf(stderr, "sdb> ");
+        if(fgets(line, 30, read_file) == NULL) break;
         if(line[0] == '\n') continue;
         strcpy(line_cpy, line);
         char* command = strtok_r(line_cpy, " \n", &save_ptr);
