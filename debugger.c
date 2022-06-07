@@ -1,6 +1,7 @@
 #include"helper.h"
 
 int main(int argc, char* argv[]){
+    setvbuf(stdout, NULL, _IONBF, BUFSIZ);
     char* script = calloc(100, sizeof(char));
     char* program = calloc(100, sizeof(char));
     init(argc, argv, script, program);
