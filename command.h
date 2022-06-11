@@ -42,6 +42,8 @@ struct list {
 struct list point_list;
 int list_used = 0;
 
+struct node* last_node = NULL;
+
 uint64_t get_text_size(char* program) {
     int fd = open(program, O_RDONLY);
 
@@ -64,6 +66,15 @@ uint64_t get_text_size(char* program) {
         if(!strcmp(shstrtab+sects[i].sh_name, ".text")) return sects[i].sh_size;
     }
     return -1;
+}
+
+void set_break_point(pid_t child) {
+    node* cur = point_list.head;
+    while(cur) {
+        if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
+        cur = cur->next;
+    }
+    return;
 }
 
 void push_back(uint64_t data, uint64_t addr) {
@@ -150,6 +161,8 @@ void break_handler(pid_t child, int mode) {
     printf("%s\t", insn[0].mnemonic);
     printf("%s\n", insn[0].op_str);
 
+    last_node = cur;
+
     return;
 }
 
@@ -165,12 +178,13 @@ void restore_text(pid_t child) {
     if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
     node* cur = get_node_by_rip(regs.rip);
     if(!cur) return;
+    if(cur != last_node) return;
 
     int wait_status;
     if(ptrace(PTRACE_POKETEXT, child, cur->addr, cur->ori_data) != 0) { perror("POKETEXT"); return; }
     if(ptrace(PTRACE_SINGLESTEP, child, 0, 0) < 0) { perror("SINGLESTEP"); return; }
     if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
-    if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
+    set_break_point(child);
 }
 
 void cont(pid_t child) {
@@ -198,15 +212,6 @@ node* get_node(int id_) {
         cur_id++;
     }
     return NULL;
-}
-
-void set_break_point(pid_t child) {
-    node* cur = point_list.head;
-    while(cur) {
-        if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
-        cur = cur->next;
-    }
-    return;
 }
 
 void delete(char* line, pid_t child) {
@@ -549,7 +554,7 @@ void si(pid_t child) {
     if(ptrace(PTRACE_POKETEXT, child, cur->addr, cur->ori_data) != 0) { perror("POKETEXT"); return; }
     if(ptrace(PTRACE_SINGLESTEP, child, 0, 0) < 0) { perror("SINGLESTEP"); return; }
     if(waitpid(child, &wait_status, 0) < 0) { perror("waitpid"); return; }
-    if(ptrace(PTRACE_POKETEXT, child, cur->addr, (cur->ori_data & 0xffffffffffffff00) | 0xcc) != 0) { perror("POKETEXT"); return; }
+    set_break_point(child);
     if(WIFEXITED(wait_status)) { 
         printf("** child process %d terminiated normally (code %d)\n", child, WEXITSTATUS(wait_status));
         state = LOADED;
