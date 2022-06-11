@@ -42,7 +42,7 @@ struct list {
 struct list point_list;
 int list_used = 0;
 
-struct node* last_node = NULL;
+int set_rip = 0;
 
 uint64_t get_text_size(char* program) {
     int fd = open(program, O_RDONLY);
@@ -161,7 +161,7 @@ void break_handler(pid_t child, int mode) {
     printf("%s\t", insn[0].mnemonic);
     printf("%s\n", insn[0].op_str);
 
-    last_node = cur;
+    set_rip = 0;
 
     return;
 }
@@ -176,9 +176,9 @@ void print_rip(pid_t child) {
 void restore_text(pid_t child) {
     struct user_regs_struct regs;
     if(ptrace(PTRACE_GETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }
+    if(set_rip) return;
     node* cur = get_node_by_rip(regs.rip);
     if(!cur) return;
-    if(cur != last_node) return;
 
     int wait_status;
     if(ptrace(PTRACE_POKETEXT, child, cur->addr, cur->ori_data) != 0) { perror("POKETEXT"); return; }
@@ -523,7 +523,7 @@ void set(char* line, pid_t child) {
     if(!strcmp(reg, "rsi")) regs.rsi = value; 
     if(!strcmp(reg, "rbp")) regs.rbp = value; 
     if(!strcmp(reg, "rsp")) regs.rsp = value; 
-    if(!strcmp(reg, "rip")) regs.rip = value; 
+    if(!strcmp(reg, "rip")) { regs.rip = value; set_rip = 1; }
     if(!strcmp(reg, "flags")) regs.eflags = value; 
 
     if(ptrace(PTRACE_SETREGS, child, 0, &regs) != 0) { perror("GETREGS"); return; }

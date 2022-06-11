@@ -3,11 +3,11 @@ CFLAGS = -Wall -g
 CGG = gcc
 CXX = g++
 
-PROGS = debugger
+PROGS = hw4 
 
 all: ${PROGS}
 
-debugger: debugger.c helper.h command.h
+hw4: hw4.c helper.h command.h
 	$(CGG) -o $@ $(CFLAGS) $< -lcapstone 
 
 clean:
